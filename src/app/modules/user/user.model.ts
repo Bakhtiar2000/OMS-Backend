@@ -19,7 +19,8 @@ const userSchema = new Schema<TUser>({
   role: {
     type: String,
     required: true,
-    enum: ["lawyer", "admin", "client"],
+    enum: ["admin", "user"],
+    default: "user",
   },
   status: {
     type: String,
@@ -29,6 +30,9 @@ const userSchema = new Schema<TUser>({
   isDeleted: {
     type: Boolean,
     default: false,
+  },
+  passwordChangedAt: {
+    type: Date,
   },
 });
 

@@ -1,6 +1,5 @@
 const USER_ROLE = {
-  lawyer: "lawyer",
-  client: "client",
+  user: "user",
   admin: "admin",
 } as const;
 

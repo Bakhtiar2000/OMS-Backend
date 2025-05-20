@@ -15,7 +15,7 @@ router.post(
 
 router.post(
   "/change-password",
-  auth(USER_ROLE.lawyer, USER_ROLE.client, USER_ROLE.admin),
+  auth(USER_ROLE.user, USER_ROLE.admin),
   validateRequest(AuthValidation.changePasswordValidationSchema),
   AuthControllers.changePassword
 );
@@ -27,8 +27,14 @@ router.post(
 );
 
 router.post(
-  "/forget-password",
+  "/forgot-password",
   validateRequest(AuthValidation.forgetPasswordValidationSchema),
   AuthControllers.forgetPassword
+);
+
+router.post(
+  "/reset-password",
+  validateRequest(AuthValidation.resetPasswordValidationSchema),
+  AuthControllers.resetPassword
 );
 export const AuthRoutes = router;

@@ -50,6 +50,17 @@ const auth = (...requiredRoles: TUserRole[]) => {
       throw new ApiError(httpStatus.FORBIDDEN, "User is blocked!");
     }
 
+    // Check if user changed password after the token has been issued (Possible hack scenario)
+    if (
+      user.passwordChangedAt &&
+      new Date(user.passwordChangedAt).getTime() / 1000 > (iat as number)
+    ) {
+      throw new ApiError(
+        httpStatus.UNAUTHORIZED,
+        "Password changed recently: Unauthorized user!"
+      );
+    }
+
     // Check if the request was sent by authorized user or not
     if (requiredRoles && !requiredRoles.includes(role)) {
       throw new ApiError(
