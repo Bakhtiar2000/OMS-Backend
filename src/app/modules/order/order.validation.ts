@@ -3,6 +3,7 @@ import { z } from "zod";
 const createOrderValidationSchema = z.object({
   body: z.object({
     number: z.string({ required_error: "Phone number is required" }),
+    totalAmount: z.number({ required_error: "Total amount is required" }),
     note: z.string().optional(),
     paymentStatus: z.enum(["paid", "cod"], {
       required_error: "Payment status is required",

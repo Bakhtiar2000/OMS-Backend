@@ -2,6 +2,7 @@ import { Cart } from "./cart.model";
 import ApiError from "../../errors/ApiError";
 import httpStatus from "http-status";
 import { JwtPayload } from "jsonwebtoken";
+import { Product } from "../product/product.model";
 
 const addToCart = async (user: JwtPayload, payload: { productId: string }) => {
   const cart = await Cart.findOne({ userId: user.userId });
@@ -43,8 +44,22 @@ const addToCart = async (user: JwtPayload, payload: { productId: string }) => {
 };
 
 const getCartItems = async (user: JwtPayload) => {
-  const cart = await Cart.findOne({ userId: user.userId });
-  return cart;
+  const cart = await Cart.findOne({ userId: user.userId }).populate({
+    path: "items.productId",
+    select: "price",
+  });
+
+  if (!cart) return { cart: null, totalAmount: "0.00" };
+
+  const totalAmount = cart.items.reduce((acc, item) => {
+    const price = (item.productId as any)?.price || 0;
+    return acc + price * item.quantity;
+  }, 0);
+
+  return {
+    cart,
+    totalAmount: totalAmount.toFixed(2),
+  };
 };
 
 const updateQuantity = async (
@@ -59,6 +74,14 @@ const updateQuantity = async (
   );
   if (!item)
     throw new ApiError(httpStatus.NOT_FOUND, "Product not found in cart");
+  const stock = (item.productId as any).stock;
+
+  if (payload.quantity > stock) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Only ${stock} item(s) in stock for this product`
+    );
+  }
 
   await Cart.updateOne(
     { userId: user.userId, "items.productId": payload.productId },
@@ -72,6 +95,8 @@ const updateQuantity = async (
 const deleteCartItem = async (user: JwtPayload, productId: string) => {
   const cart = await Cart.findOne({ userId: user.userId });
   if (!cart) throw new ApiError(httpStatus.NOT_FOUND, "Cart not found");
+  const product = await Product.findById(productId);
+  if (!product) throw new ApiError(httpStatus.NOT_FOUND, "Product not found");
 
   await Cart.updateOne(
     { userId: user.userId },

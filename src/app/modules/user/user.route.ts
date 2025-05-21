@@ -14,7 +14,6 @@ router.post(
   validateRequest(UserValidations.createUserValidationSchema),
   UserControllers.createAUser
 );
-
 router.get("/me", auth(USER_ROLE.admin, USER_ROLE.user), UserControllers.getMe);
 
 router.patch(

@@ -3,40 +3,83 @@ import { JwtPayload } from "jsonwebtoken";
 import { Order } from "./order.model";
 import { Cart } from "../cart/cart.model";
 import ApiError from "../../errors/ApiError";
+import mongoose from "mongoose";
+import { Product } from "../product/product.model";
 
-const createOrder = async (user: JwtPayload, body: any) => {
-  const cart = await Cart.findOne({ userId: user.userId }).populate({
-    path: "items.productId",
-    select: "price",
-  });
-  if (!cart) {
-    throw new ApiError(httpStatus.BAD_REQUEST, "Cart not found");
+const createOrder = async (user: JwtPayload, payload: any) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const cart = await Cart.findOne({ userId: user.userId })
+      .populate({
+        path: "items.productId",
+        select: "price stock name",
+      })
+      .session(session);
+
+    if (!cart) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Cart not found");
+    }
+
+    const cartItems = cart.items;
+    if (!cartItems.length) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Cart is empty");
+    }
+
+    const items = cartItems.map((item) => {
+      const product = item.productId as any;
+      console.log(product)
+      if (product.stock < item.quantity) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          `Not enough stock for product: ${product.name}`
+        );
+      }
+      return {
+        productId: product._id,
+        quantity: item.quantity,
+        price: product.price * item.quantity,
+      };
+    });
+
+    // Transaction-1: Create the order
+    const order = await Order.create(
+      [
+        {
+          userId: user.userId,
+          number: payload.number,
+          note: payload.note || "",
+          items,
+          totalAmount: payload.totalAmount,
+          paymentStatus: payload.paymentStatus,
+          isAccepted: true,
+          shippingAddress: payload.shippingAddress,
+        },
+      ],
+      { session }
+    );
+
+    // Transaction-2: Decrease stock of products
+    for (const item of items) {
+      await Product.findByIdAndUpdate(
+        item.productId,
+        { $inc: { stock: -item.quantity } },
+        { session }
+      );
+    }
+
+    // Transaction-3: Clear the cart
+    await Cart.deleteOne({ userId: user.userId }, { session });
+
+    await session.commitTransaction();
+    session.endSession();
+    return order[0];
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
   }
-  const cartItems = cart.items;
-  if (!cartItems.length) {
-    throw new ApiError(httpStatus.BAD_REQUEST, "Cart is empty");
-  }
-
-  const items = cartItems.map((item) => ({
-    productId: item.productId._id,
-    quantity: item.quantity,
-    price: (item.productId as any).price * item.quantity,
-  }));
-
-  const totalAmount = items.reduce((acc, item) => acc + item.price, 0);
-
-  const order = await Order.create({
-    userId: user.userId,
-    number: body.number,
-    note: body.note,
-    items,
-    totalAmount: totalAmount.toFixed(2),
-    paymentStatus: body.paymentStatus,
-    isAccepted: true,
-    shippingAddress: body.shippingAddress,
-  });
-  await Cart.deleteOne({ userId: user.userId });
-  return order;
 };
 
 const updateStatus = async (id: string, status: string) => {

@@ -164,9 +164,24 @@ const forgetPassword = async (email: string) => {
     config.jwt_access_secret as string,
     1000 * 60 * 10 // 10 minutes
   );
-  const resetUILink = `${config.reset_pass_ui_link}&token=${resetToken}`;
+  const resetUILink = `${config.reset_pass_ui_link}/reset-password?token=${resetToken}`;
   console.log(resetUILink);
-  sendEmail(user?.email, resetUILink);
+  sendEmail(
+    user?.email,
+    `
+    <div>
+        <p>Dear User,</p>
+        <p>Click on this Button to reset password. Link expires in 10 minutes.</p> 
+        <p>
+            <a href=${resetUILink}>
+                <button>
+                    Reset Password
+                </button>
+            </a>
+        </p>
+    </div>
+    `
+  );
 };
 
 const resetPassword = async (
