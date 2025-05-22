@@ -2,7 +2,7 @@
 
 This is the **backend server** for the Shoppo e-commerce platform, built with **Node.js**, **Express**, and **TypeScript**. It powers the frontend by exposing RESTful APIs for features like authentication, product management, cart operations, order tracking, and user roles.
 
-🌐 **Live Link**: [https://oms-backend-xiv3.onrender.com](https://oms-backend-xiv3.onrender.com)
+🌐 **Live Link**: [https://oms-backend-orz1.onrender.com](https://oms-backend-orz1.onrender.com)
 
 ---
 
