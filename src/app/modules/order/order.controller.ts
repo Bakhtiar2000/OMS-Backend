@@ -49,6 +49,19 @@ const cancelOrder = catchAsync(async (req, res) => {
   });
 });
 
+const deliverOrder = catchAsync(async (req, res) => {
+  const result = await OrderServices.deliverOrder(
+    req.params.id,
+    req.user.userId
+  );
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Order delivered!",
+    data: result,
+  });
+});
+
 const getMyOrders = catchAsync(async (req, res) => {
   const result = await OrderServices.getMyOrders(req.user.userId);
   sendResponse(res, {
@@ -74,6 +87,7 @@ export const OrderControllers = {
   updateStatus,
   refundPayment,
   cancelOrder,
+  deliverOrder,
   getMyOrders,
   getAllOrders,
 };

@@ -5,6 +5,16 @@ import { Cart } from "../cart/cart.model";
 import ApiError from "../../errors/ApiError";
 import mongoose from "mongoose";
 import { Product } from "../product/product.model";
+import { TOrderItem } from "./order.interface";
+
+const restockProducts = async (orderItems: TOrderItem[]) => {
+  const updatePromises = orderItems.map((item) =>
+    Product.findByIdAndUpdate(item.productId, {
+      $inc: { stock: item.quantity },
+    })
+  );
+  await Promise.all(updatePromises);
+};
 
 const createOrder = async (user: JwtPayload, payload: any) => {
   const session = await mongoose.startSession();
@@ -29,7 +39,7 @@ const createOrder = async (user: JwtPayload, payload: any) => {
 
     const items = cartItems.map((item) => {
       const product = item.productId as any;
-      console.log(product)
+      console.log(product);
       if (product.stock < item.quantity) {
         throw new ApiError(
           httpStatus.BAD_REQUEST,
@@ -114,7 +124,8 @@ const refundPayment = async (id: string) => {
     { paymentStatus: "refunded" },
     { new: true }
   );
-  if (!order) throw new ApiError(httpStatus.NOT_FOUND, "Order not found");
+  if (!order) throw new ApiError(httpStatus.NOT_FOUND, "Order not found!");
+  await restockProducts(order.items);
   return order;
 };
 
@@ -124,8 +135,18 @@ const cancelOrder = async (id: string, userId: string) => {
     { status: "cancelled" },
     { new: true }
   );
-  if (!order)
-    throw new ApiError(httpStatus.NOT_FOUND, "Order not found or unauthorized");
+  if (!order) throw new ApiError(httpStatus.NOT_FOUND, "Order not found!");
+  return order;
+};
+
+const deliverOrder = async (id: string, userId: string) => {
+  const order = await Order.findOneAndUpdate(
+    { _id: id, userId },
+    { status: "cancelled" },
+    { new: true }
+  );
+  if (!order) throw new ApiError(httpStatus.NOT_FOUND, "Order not found!");
+  await restockProducts(order.items);
   return order;
 };
 
@@ -142,6 +163,7 @@ export const OrderServices = {
   updateStatus,
   refundPayment,
   cancelOrder,
+  deliverOrder,
   getMyOrders,
   getAllOrders,
 };

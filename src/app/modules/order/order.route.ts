@@ -15,19 +15,29 @@ router.post(
 );
 
 router.patch(
-  "/update-status/:id",
+  "/update-order-status/:id",
   auth(USER_ROLE.admin),
   validateRequest(OrderValidation.updateStatusValidationSchema),
   OrderControllers.updateStatus
 );
 
 router.patch(
-  "/refund/:id",
+  "/refund-order/:id",
   auth(USER_ROLE.user),
   OrderControllers.refundPayment
 );
 
-router.patch("/cancel/:id", auth(USER_ROLE.user), OrderControllers.cancelOrder);
+router.patch(
+  "/cancel-order/:id",
+  auth(USER_ROLE.user),
+  OrderControllers.cancelOrder
+);
+
+router.patch(
+  "/deliver-order/:id",
+  auth(USER_ROLE.user),
+  OrderControllers.deliverOrder
+);
 
 router.get("/my-orders", auth(USER_ROLE.user), OrderControllers.getMyOrders);
 
