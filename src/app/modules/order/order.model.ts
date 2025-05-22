@@ -75,7 +75,7 @@ const OrderSchema = new Schema<TOrder>(
     },
     paymentStatus: {
       type: String,
-      enum: ["paid", "cod", "refunded"],
+      enum: ["paid", "cod"],
       required: true,
     },
     shippingAddress: {

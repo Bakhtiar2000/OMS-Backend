@@ -21,24 +21,6 @@ router.patch(
   OrderControllers.updateStatus
 );
 
-router.patch(
-  "/refund-order/:id",
-  auth(USER_ROLE.user),
-  OrderControllers.refundPayment
-);
-
-router.patch(
-  "/cancel-order/:id",
-  auth(USER_ROLE.user),
-  OrderControllers.cancelOrder
-);
-
-router.patch(
-  "/deliver-order/:id",
-  auth(USER_ROLE.user),
-  OrderControllers.deliverOrder
-);
-
 router.get("/my-orders", auth(USER_ROLE.user), OrderControllers.getMyOrders);
 
 router.get("/", auth(USER_ROLE.admin), OrderControllers.getAllOrders);

@@ -25,7 +25,7 @@ export type TOrder = {
     | "on_the_way"
     | "delivered"
     | "cancelled";
-  paymentStatus: "paid" | "cod" | "refunded";
+  paymentStatus: "paid" | "cod";
   shippingAddress: TAddress;
   createdAt: Date;
   updatedAt: Date;

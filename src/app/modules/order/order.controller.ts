@@ -26,42 +26,6 @@ const updateStatus = catchAsync(async (req, res) => {
   });
 });
 
-const refundPayment = catchAsync(async (req, res) => {
-  const result = await OrderServices.refundPayment(req.params.id);
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "Payment refunded",
-    data: result,
-  });
-});
-
-const cancelOrder = catchAsync(async (req, res) => {
-  const result = await OrderServices.cancelOrder(
-    req.params.id,
-    req.user.userId
-  );
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "Order cancelled",
-    data: result,
-  });
-});
-
-const deliverOrder = catchAsync(async (req, res) => {
-  const result = await OrderServices.deliverOrder(
-    req.params.id,
-    req.user.userId
-  );
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "Order delivered!",
-    data: result,
-  });
-});
-
 const getMyOrders = catchAsync(async (req, res) => {
   const result = await OrderServices.getMyOrders(req.user.userId);
   sendResponse(res, {
@@ -72,8 +36,8 @@ const getMyOrders = catchAsync(async (req, res) => {
   });
 });
 
-const getAllOrders = catchAsync(async (_req, res) => {
-  const result = await OrderServices.getAllOrders();
+const getAllOrders = catchAsync(async (req, res) => {
+  const result = await OrderServices.getAllOrders(req.query);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -85,9 +49,6 @@ const getAllOrders = catchAsync(async (_req, res) => {
 export const OrderControllers = {
   createOrder,
   updateStatus,
-  refundPayment,
-  cancelOrder,
-  deliverOrder,
   getMyOrders,
   getAllOrders,
 };

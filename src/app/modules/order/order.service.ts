@@ -6,6 +6,7 @@ import ApiError from "../../errors/ApiError";
 import mongoose from "mongoose";
 import { Product } from "../product/product.model";
 import { TOrderItem } from "./order.interface";
+import QueryBuilder from "../../builder/QueryBuilder";
 
 const restockProducts = async (orderItems: TOrderItem[]) => {
   const updatePromises = orderItems.map((item) =>
@@ -115,55 +116,29 @@ const updateStatus = async (id: string, status: string) => {
     );
   }
   const result = await Order.findByIdAndUpdate(id, { status }, { new: true });
+  if (status === "cancelled") await restockProducts(order.items);
   return result;
-};
-
-const refundPayment = async (id: string) => {
-  const order = await Order.findByIdAndUpdate(
-    id,
-    { paymentStatus: "refunded" },
-    { new: true }
-  );
-  if (!order) throw new ApiError(httpStatus.NOT_FOUND, "Order not found!");
-  await restockProducts(order.items);
-  return order;
-};
-
-const cancelOrder = async (id: string, userId: string) => {
-  const order = await Order.findOneAndUpdate(
-    { _id: id, userId },
-    { status: "cancelled" },
-    { new: true }
-  );
-  if (!order) throw new ApiError(httpStatus.NOT_FOUND, "Order not found!");
-  return order;
-};
-
-const deliverOrder = async (id: string, userId: string) => {
-  const order = await Order.findOneAndUpdate(
-    { _id: id, userId },
-    { status: "cancelled" },
-    { new: true }
-  );
-  if (!order) throw new ApiError(httpStatus.NOT_FOUND, "Order not found!");
-  await restockProducts(order.items);
-  return order;
 };
 
 const getMyOrders = async (userId: string) => {
   return await Order.find({ userId });
 };
 
-const getAllOrders = async () => {
-  return await Order.find();
+const getAllOrders = async (query: Record<string, unknown>) => {
+  const adminQuery = new QueryBuilder(Order.find().populate("userId"), query)
+    .search(["status", "paymentStatus"])
+    .filter()
+    .sort()
+    .paginate()
+    .fields();
+
+  const result = await adminQuery.modelQuery;
+  return result;
 };
 
 export const OrderServices = {
   createOrder,
   updateStatus,
-  refundPayment,
-  cancelOrder,
-  deliverOrder,
   getMyOrders,
   getAllOrders,
 };
