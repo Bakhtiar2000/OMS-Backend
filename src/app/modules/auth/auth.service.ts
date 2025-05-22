@@ -7,34 +7,44 @@ import config from "../../config";
 import bcrypt from "bcrypt";
 import { createToken, verifyToken } from "./auth.utils";
 import { sendEmail } from "../../utils/sendEmail";
+import logger from "../../middleWear/logger";
 
 const loginUser = async (payload: TLoginUser) => {
   const user = await User.findOne({ email: payload?.email }).select(
     "+password"
   );
-  console.log(user, payload);
+  logger.info(`Login attempt for email: ${payload?.email}`);
 
   // Check if user exists
   if (!user) {
+    logger.error(`Login failed: User not found - email: ${payload?.email}`);
     throw new ApiError(httpStatus.NOT_FOUND, "User not found!");
   }
 
   // Check if user is deleted
   const isUserDeleted = user?.isDeleted;
   if (isUserDeleted) {
+    logger.error(`Login failed: User is deleted - email: ${payload?.email}`);
     throw new ApiError(httpStatus.FORBIDDEN, "User is deleted!");
   }
 
   // Check if user is blocked
   const userStatus = user?.status;
   if (userStatus === "blocked") {
+    logger.error(`Login failed: User is blocked - email: ${payload?.email}`);
     throw new ApiError(httpStatus.FORBIDDEN, "User is blocked!");
   }
 
   // Check if password is correct
   if (!(await bcrypt.compare(payload?.password, user?.password))) {
+    logger.error(
+      `Login failed: Password did not match - email: ${payload?.email}`
+    );
     throw new ApiError(httpStatus.FORBIDDEN, "Password did not match!");
   }
+
+  // Successful login
+  logger.info(`Login successful for user: ${payload?.email}`);
 
   //----------------Create jsonwebtoken and send to the user-----------------
   const jwtPayload = {
@@ -64,15 +74,23 @@ const changePassword = async (
   userData: JwtPayload,
   payload: { oldPassword: string; newPassword: string }
 ) => {
+  logger.info(`Password change requested for userId: ${userData.userId}`);
+
   const user = await User.findById(userData.userId).select("+password");
 
   // Check if user exists
   if (!user) {
+    logger.error(
+      `Password change failed: User not found - userId: ${userData.userId}`
+    );
     throw new ApiError(httpStatus.NOT_FOUND, "User not found!");
   }
 
   // Check if password is correct
   if (!(await bcrypt.compare(payload?.oldPassword, user?.password))) {
+    logger.error(
+      `Password change failed: Old password mismatch - userId: ${userData.userId}`
+    );
     throw new ApiError(httpStatus.FORBIDDEN, "Password did not match!");
   }
 
@@ -92,29 +110,45 @@ const changePassword = async (
       passwordChangedAt: new Date(),
     }
   );
-  return null; // No need to send password as response. That's why we did not assign update operation in result variable too
+
+  logger.info(`Password changed successfully for userId: ${userData.userId}`);
+
+  return null;
 };
 
 const refreshToken = async (token: string) => {
+  logger.info(`Refresh token request received.`);
+
   // checking if the given token is valid
-  const decoded = verifyToken(token, config.jwt_refresh_secret as string);
+  let decoded;
+  try {
+    decoded = verifyToken(token, config.jwt_refresh_secret as string);
+  } catch (error) {
+    logger.error(`Refresh token verification failed: Invalid token.`);
+    throw error; // Let ApiError or caller handle it
+  }
 
   const { userId, iat } = decoded;
+  logger.info(`Refresh token decoded for userId: ${userId}`);
 
   // checking if the user exists
   const user = await User.findById(userId);
   if (!user) {
+    logger.error(`Refresh token failed: User not found - userId: ${userId}`);
     throw new ApiError(httpStatus.NOT_FOUND, "This user is not found !");
   }
+
   // checking if the user is already deleted
   const isDeleted = user?.isDeleted;
   if (isDeleted) {
+    logger.error(`Refresh token failed: User deleted - userId: ${userId}`);
     throw new ApiError(httpStatus.FORBIDDEN, "This user is deleted !");
   }
 
   // checking if the user is blocked
   const userStatus = user?.status;
   if (userStatus === "blocked") {
+    logger.error(`Refresh token failed: User blocked - userId: ${userId}`);
     throw new ApiError(httpStatus.FORBIDDEN, "This user is blocked ! !");
   }
 
@@ -129,28 +163,34 @@ const refreshToken = async (token: string) => {
     parseInt(config.jwt_access_expires_in as string)
   );
 
+  logger.info(`Access token refreshed successfully for userId: ${userId}`);
+
   return {
     accessToken,
   };
 };
 
 const forgetPassword = async (email: string) => {
+  logger.info(`Password reset requested for email: ${email}`);
+
   // checking if the user exists
-  console.log(email);
-  console.log(await User.find());
   const user = await User.findOne({ email });
   if (!user) {
+    logger.error(`Password reset failed: User not found - email: ${email}`);
     throw new ApiError(httpStatus.NOT_FOUND, "This user is not found !");
   }
+
   // checking if the user is already deleted
   const isDeleted = user?.isDeleted;
   if (isDeleted) {
+    logger.error(`Password reset failed: User deleted - email: ${email}`);
     throw new ApiError(httpStatus.FORBIDDEN, "This user is deleted !");
   }
 
   // checking if the user is blocked
   const userStatus = user?.status;
   if (userStatus === "blocked") {
+    logger.error(`Password reset failed: User blocked - email: ${email}`);
     throw new ApiError(httpStatus.FORBIDDEN, "This user is blocked ! !");
   }
 
@@ -164,8 +204,12 @@ const forgetPassword = async (email: string) => {
     config.jwt_access_secret as string,
     1000 * 60 * 10 // 10 minutes
   );
+
   const resetUILink = `${config.reset_pass_ui_link}/reset-password?token=${resetToken}`;
-  console.log(resetUILink);
+  logger.info(
+    `Password reset link generated for email: ${email} - Link expires in 10 minutes.`
+  );
+
   sendEmail(
     user?.email,
     `
@@ -188,21 +232,34 @@ const resetPassword = async (
   payload: { newPassword: string },
   token: string
 ) => {
+  logger.info(`Reset password attempt with token: ${token}`);
+
   const decoded = verifyToken(token, config.jwt_access_secret as string);
-  // checking if the user is exist
+
+  // checking if the user exists
   const user = await User.findById(decoded.userId);
   if (!user) {
+    logger.error(
+      `Reset password failed: User not found - userId: ${decoded.userId}`
+    );
     throw new ApiError(httpStatus.NOT_FOUND, "This user is not found !");
   }
+
   // checking if the user is already deleted
   const isDeleted = user?.isDeleted;
   if (isDeleted) {
+    logger.error(
+      `Reset password failed: User deleted - userId: ${decoded.userId}`
+    );
     throw new ApiError(httpStatus.FORBIDDEN, "This user is deleted !");
   }
 
   // checking if the user is blocked
   const userStatus = user?.status;
   if (userStatus === "blocked") {
+    logger.error(
+      `Reset password failed: User blocked - userId: ${decoded.userId}`
+    );
     throw new ApiError(httpStatus.FORBIDDEN, "This user is blocked ! !");
   }
 
@@ -222,6 +279,8 @@ const resetPassword = async (
       passwordChangedAt: new Date(),
     }
   );
+
+  logger.info(`Password reset successful for userId: ${decoded.userId}`);
 };
 
 export const AuthServices = {

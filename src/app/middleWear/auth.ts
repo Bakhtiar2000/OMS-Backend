@@ -6,67 +6,86 @@ import { TUserRole } from "../modules/user/user.interface";
 import { User } from "../modules/user/user.model";
 import ApiError from "../errors/ApiError";
 import { verifyToken } from "../modules/auth/auth.utils";
+import logger from "./logger";
 
 const auth = (...requiredRoles: TUserRole[]) => {
   return catchAsync(async (req, res, next) => {
     const token = req.headers.authorization;
 
-    //Check if token is sent
+    // Log the incoming request info (you can customize this)
+    logger.info(`${req.method} ${req.originalUrl} - IP: ${req.ip}`);
+
     if (!token) {
-      throw new ApiError(
-        httpStatus.UNAUTHORIZED,
-        "Token not found: Unauthorized User!"
+      const message = "Token not found: Unauthorized User!";
+      logger.error(
+        `${req.method} ${req.originalUrl} 401 Unauthorized - IP: ${req.ip} - ${message}`
       );
+      throw new ApiError(httpStatus.UNAUTHORIZED, message);
     }
 
-    // If token found, then verify token and find out decoded jwtPayload fields
     let decoded;
     try {
       decoded = verifyToken(token, config.jwt_access_secret as string);
     } catch (error) {
+      logger.error(
+        `${req.method} ${req.originalUrl} 401 Unauthorized - IP: ${req.ip} - Unauthorized access happened`
+      );
       throw new ApiError(
         httpStatus.UNAUTHORIZED,
         "Unauthorized access happened"
       );
     }
+
     const { userId, role, iat } = decoded;
     const user = await User.findById(userId);
 
-    // Check if user exists
     if (!user) {
-      throw new ApiError(httpStatus.NOT_FOUND, "User not found!");
+      const message = "User not found!";
+      logger.error(
+        `${req.method} ${req.originalUrl} 404 Not Found - IP: ${req.ip} - ${message}`
+      );
+      throw new ApiError(httpStatus.NOT_FOUND, message);
     }
 
-    // Check if user is deleted
-    const isUserDeleted = user?.isDeleted;
-    if (isUserDeleted) {
-      throw new ApiError(httpStatus.FORBIDDEN, "User is deleted!");
+    if (user.isDeleted) {
+      const message = "User is deleted!";
+      logger.error(
+        `${req.method} ${req.originalUrl} 403 Forbidden - IP: ${req.ip} - ${message}`
+      );
+      throw new ApiError(httpStatus.FORBIDDEN, message);
     }
 
-    // Check if user is blocked
-    const userStatus = user?.status;
-    if (userStatus === "blocked") {
-      throw new ApiError(httpStatus.FORBIDDEN, "User is blocked!");
+    if (user.status === "blocked") {
+      const message = "User is blocked!";
+      logger.error(
+        `${req.method} ${req.originalUrl} 403 Forbidden - IP: ${req.ip} - ${message}`
+      );
+      throw new ApiError(httpStatus.FORBIDDEN, message);
     }
 
-    // Check if user changed password after the token has been issued (Possible hack scenario)
     if (
       user.passwordChangedAt &&
       new Date(user.passwordChangedAt).getTime() / 1000 > (iat as number)
     ) {
-      throw new ApiError(
-        httpStatus.UNAUTHORIZED,
-        "Password changed recently: Unauthorized user!"
+      const message = "Password changed recently: Unauthorized user!";
+      logger.error(
+        `${req.method} ${req.originalUrl} 401 Unauthorized - IP: ${req.ip} - ${message}`
       );
+      throw new ApiError(httpStatus.UNAUTHORIZED, message);
     }
 
-    // Check if the request was sent by authorized user or not
-    if (requiredRoles && !requiredRoles.includes(role)) {
-      throw new ApiError(
-        httpStatus.UNAUTHORIZED,
-        "Role mismatched. Unauthorized User!"
+    if (requiredRoles.length && !requiredRoles.includes(role)) {
+      const message = "Role mismatched. Unauthorized User!";
+      logger.error(
+        `${req.method} ${req.originalUrl} 401 Unauthorized - IP: ${req.ip} - ${message}`
       );
+      throw new ApiError(httpStatus.UNAUTHORIZED, message);
     }
+
+    // Log successful authorization
+    logger.info(
+      `Authorized userId: ${userId}, role: ${role} - ${req.method} ${req.originalUrl} - IP: ${req.ip}`
+    );
 
     req.user = decoded as JwtPayload;
     next();

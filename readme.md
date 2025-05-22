@@ -2,14 +2,16 @@
 
 This is the **backend server** for the Shoppo e-commerce platform, built with **Node.js**, **Express**, and **TypeScript**. It powers the frontend by exposing RESTful APIs for features like authentication, product management, cart operations, order tracking, and user roles.
 
+🌐 **Live Link**: [https://oms-backend-xiv3.onrender.com](https://oms-backend-xiv3.onrender.com)
+
 ---
 
 ## 🚀 Getting Started – Local Setup
 
 ### ✅ Prerequisites
 
-* Node.js (v18+ recommended)
-* npm or yarn
+- Node.js (v18+ recommended)
+- npm or yarn
 
 ### 📦 Backend Installation Steps
 
@@ -42,11 +44,11 @@ npm start
 
 ## 🧠 Modules Included
 
-* **User Module** – Registration, login, password encryption, and role management
-* **Auth Module** – JWT-based authentication
-* **Product Module** – CRUD for product listings
-* **Cart Module** – Add to cart, view/update cart items
-* **Order Module** – Place and track orders, manage statuses
+- **User Module** – Registration, login, password encryption, and role management
+- **Auth Module** – JWT-based authentication
+- **Product Module** – CRUD for product listings
+- **Cart Module** – Add to cart, view/update cart items
+- **Order Module** – Place and track orders, manage statuses
 
 ---
 
@@ -64,17 +66,17 @@ These functionalities support the frontend of Shoppo:
 
 ### 👤 Users can:
 
-* Register and login
-* Browse and retrieve product listings
-* Add products to their cart
-* Create and view orders
-* Track order status
+- Register and login
+- Browse and retrieve product listings
+- Add products to their cart
+- Create and view orders
+- Track order status
 
 ### 🔐 Admins can:
 
-* Manage products (CRUD)
-* View and update order statuses (e.g., Pending, On-the-Way, Delivered)
-* View and manage user accounts
+- Manage products (CRUD)
+- View and update order statuses (e.g., Pending, On-the-Way, Delivered)
+- View and manage user accounts
 
 ---
 
