@@ -5,8 +5,16 @@ import { Cart } from "../cart/cart.model";
 import ApiError from "../../errors/ApiError";
 import mongoose from "mongoose";
 import { Product } from "../product/product.model";
-import { TOrderItem } from "./order.interface";
+import { TOrder, TOrderItem } from "./order.interface";
 import QueryBuilder from "../../builder/QueryBuilder";
+import { TProduct } from "../product/product.interface";
+
+type TOrderProduct = {
+  _id: string;
+  name: string;
+  price: number;
+  stock: number;
+};
 
 const restockProducts = async (orderItems: TOrderItem[]) => {
   const updatePromises = orderItems.map((item) =>
@@ -17,13 +25,13 @@ const restockProducts = async (orderItems: TOrderItem[]) => {
   await Promise.all(updatePromises);
 };
 
-const createOrder = async (user: JwtPayload, payload: any) => {
+const createOrder = async (user: JwtPayload, payload: Partial<TOrder>) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
     const cart = await Cart.findOne({ userId: user.userId })
-      .populate({
+      .populate<{ items: { productId: TOrderProduct; quantity: number }[] }>({
         path: "items.productId",
         select: "price stock name",
       })
@@ -39,7 +47,7 @@ const createOrder = async (user: JwtPayload, payload: any) => {
     }
 
     const items = cartItems.map((item) => {
-      const product = item.productId as any;
+      const product = item.productId;
       console.log(product);
       if (product.stock < item.quantity) {
         throw new ApiError(

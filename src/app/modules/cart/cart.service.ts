@@ -4,6 +4,13 @@ import httpStatus from "http-status";
 import { JwtPayload } from "jsonwebtoken";
 import { Product } from "../product/product.model";
 
+type TCartProduct = {
+  _id: string;
+  name: string;
+  price: number;
+  stock: number;
+};
+
 const addToCart = async (user: JwtPayload, payload: { productId: string }) => {
   const cart = await Cart.findOne({ userId: user.userId });
 
@@ -44,7 +51,9 @@ const addToCart = async (user: JwtPayload, payload: { productId: string }) => {
 };
 
 const getCartItems = async (user: JwtPayload) => {
-  const cart = await Cart.findOne({ userId: user.userId }).populate({
+  const cart = await Cart.findOne({ userId: user.userId }).populate<{
+    items: { productId: TCartProduct; quantity: number }[];
+  }>({
     path: "items.productId",
     select: "price",
   });
@@ -52,7 +61,7 @@ const getCartItems = async (user: JwtPayload) => {
   if (!cart) return { cart: null, totalAmount: "0.00" };
 
   const totalAmount = cart.items.reduce((acc, item) => {
-    const price = (item.productId as any)?.price || 0;
+    const price = item.productId.price || 0;
     return acc + price * item.quantity;
   }, 0);
 

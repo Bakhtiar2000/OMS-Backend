@@ -4,7 +4,10 @@ import { sendImageToCloudinary } from "../../utils/sendImageToCloudinary";
 import ApiError from "../../errors/ApiError";
 import httpStatus from "http-status";
 
-const createProduct = async (file: any, payload: TProduct) => {
+const createProduct = async (
+  file: Express.Multer.File | undefined,
+  payload: TProduct
+) => {
   if (file) {
     const uploaded = (await sendImageToCloudinary(
       file.filename,

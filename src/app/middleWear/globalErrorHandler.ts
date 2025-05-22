@@ -1,13 +1,14 @@
 // middlewares/globalErrorHandler.ts
 import { Request, Response, NextFunction } from "express";
+import ApiError from "../errors/ApiError";
 
 const globalErrorHandler = (
-  err: any,
+  err: Error | ApiError,
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const statusCode = err.statusCode || 500;
+  const statusCode = err instanceof ApiError ? err.statusCode : 500;
   const message = err.message || "Something went wrong";
 
   res.status(statusCode).json({
