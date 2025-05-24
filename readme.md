@@ -25,8 +25,11 @@ npm install
 # or
 yarn
 
-# Provide required environment variables
-cp .env.example .env
+# Set up environment variables
+# Create a .env file in the project root and add the required environment variables.
+# You can either copy them from:
+# https://docs.google.com/document/d/1NXvPj828LoO5L0mLbz5MTSH_NrewY-FH72tj5tdd9hs/edit?usp=sharing
+# or use the .env.example file as a reference to define your own credentials.
 
 # Start the server in development mode
 npm run start:dev
@@ -38,7 +41,7 @@ npm run build
 npm start
 ```
 
-> The server will typically run on `http://localhost:5000` unless configured otherwise.
+> The server will typically run on `http://localhost:5005` unless configured otherwise.
 
 ---
 
